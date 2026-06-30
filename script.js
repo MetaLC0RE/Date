@@ -140,73 +140,82 @@ function selectLocation(element, value) {
     errorElement.style.display = 'none';
 }
 
-// Функция для отправки через iframe (работает на GitHub Pages)
-function sendTelegramMessageViaIframe(message) {
-    return new Promise((resolve, reject) => {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-        form.target = 'telegramFrame';
-        form.style.display = 'none';
+// Функция для отправки через Webhook (рекомендуемый способ)
+function sendTelegramMessage(message) {
+    // Проверяем, что токен и чат ID заданы
+    if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN === "YOUR_BOT_TOKEN") {
+        console.error("❌ Токен бота не задан!");
+        showFallbackMessage(message);
+        return;
+    }
+    
+    if (!TELEGRAM_CHAT_ID || TELEGRAM_CHAT_ID === "YOUR_CHAT_ID") {
+        console.error("❌ Chat ID не задан!");
+        showFallbackMessage(message);
+        return;
+    }
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    
+    // Пробуем отправить через fetch с режимом no-cors
+    fetch(url, {
+        method: 'POST',
+        mode: 'no-cors', // Важно для обхода CORS
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: message,
+            parse_mode: 'HTML'
+        })
+    })
+    .then(response => {
+        // При режиме no-cors ответ всегда будет opaque
+        // Поэтому мы не можем проверить статус
+        console.log("📤 Запрос отправлен в Telegram API");
+        console.log("ℹ️ В режиме no-cors мы не можем получить ответ");
+        console.log("🔍 Проверьте Telegram бота, должно прийти сообщение");
         
-        const input1 = document.createElement('input');
-        input1.type = 'hidden';
-        input1.name = 'chat_id';
-        input1.value = TELEGRAM_CHAT_ID;
-        
-        const input2 = document.createElement('input');
-        input2.type = 'hidden';
-        input2.name = 'text';
-        input2.value = message;
-        
-        const input3 = document.createElement('input');
-        input3.type = 'hidden';
-        input3.name = 'parse_mode';
-        input3.value = 'HTML';
-        
-        form.appendChild(input1);
-        form.appendChild(input2);
-        form.appendChild(input3);
-        
-        const iframe = document.createElement('iframe');
-        iframe.name = 'telegramFrame';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-        document.body.appendChild(form);
-        
-        form.submit();
-        
-        setTimeout(() => {
-            document.body.removeChild(form);
-            document.body.removeChild(iframe);
-            resolve();
-        }, 1000);
+        // Отображаем информацию пользователю
+        showSuccessMessage();
+    })
+    .catch(error => {
+        console.error("❌ Ошибка отправки:", error);
+        // Если fetch не работает, пробуем альтернативный способ
+        sendTelegramMessageViaImage(message);
     });
 }
 
-// Основная функция отправки
-function sendTelegramMessage(message) {
-    // Пробуем отправить через iframe
-    sendTelegramMessageViaIframe(message)
-        .then(() => {
-            console.log("✅ Уведомление отправлено в Telegram!");
-        })
-        .catch(error => {
-            console.error("❌ Ошибка отправки:", error);
-            // Если не работает, показываем ссылку
-            showManualTelegramLink(message);
-        });
+// Альтернативный способ: через отправку изображения (работает через img тег)
+function sendTelegramMessageViaImage(message) {
+    console.log("📤 Пробуем отправить через Image...");
+    
+    // Кодируем сообщение в URL
+    const encodedMessage = encodeURIComponent(message);
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodedMessage}&parse_mode=HTML`;
+    
+    // Создаем img с src на API Telegram
+    const img = new Image();
+    img.onload = function() {
+        console.log("✅ Уведомление отправлено через Image!");
+        showSuccessMessage();
+    };
+    img.onerror = function() {
+        console.log("⚠️ Image метод не сработал, пробуем через ссылку");
+        // Показываем ссылку для ручной отправки
+        showManualLink(message);
+    };
+    img.src = url;
+    img.style.display = 'none';
+    document.body.appendChild(img);
+    setTimeout(() => {
+        document.body.removeChild(img);
+    }, 2000);
 }
 
-function showManualTelegramLink(message) {
-    const encodedMessage = encodeURIComponent(message);
-    
-    console.log("📱 Откройте Telegram и отправьте сообщение вручную:");
-    console.log(`Сообщение: ${message}`);
-    console.log(`Chat ID: ${TELEGRAM_CHAT_ID}`);
-    console.log(`Токен: ${TELEGRAM_BOT_TOKEN}`);
-    
-    // Показываем уведомление пользователю
+// Показать успешное сообщение
+function showSuccessMessage() {
     const errorMsg = document.getElementById('errorMsg');
     if (errorMsg) {
         errorMsg.textContent = "✅ Свидание запланировано! ❤️";
@@ -216,6 +225,41 @@ function showManualTelegramLink(message) {
             errorMsg.style.display = 'none';
         }, 3000);
     }
+}
+
+// Показать ссылку для ручной отправки
+function showManualLink(message) {
+    const encodedMessage = encodeURIComponent(message);
+    const botUsername = TELEGRAM_BOT_TOKEN.split(':')[0];
+    
+    console.log("📱 Отправьте сообщение вручную:");
+    console.log(`Сообщение: ${message}`);
+    console.log(`Chat ID: ${TELEGRAM_CHAT_ID}`);
+    console.log(`Токен: ${TELEGRAM_BOT_TOKEN}`);
+    console.log(`Ссылка на бота: https://t.me/${botUsername}`);
+    
+    // Показываем диалог с инструкцией
+    const errorMsg = document.getElementById('errorMsg');
+    if (errorMsg) {
+        errorMsg.innerHTML = `
+            📱 <b>Не удалось отправить автоматически</b><br>
+            Напишите боту вручную:<br>
+            <small>@${botUsername}</small>
+        `;
+        errorMsg.style.display = 'block';
+        errorMsg.style.color = '#FF6B35';
+        errorMsg.style.padding = '15px';
+        errorMsg.style.background = '#FFF3E0';
+        errorMsg.style.borderRadius = '12px';
+        errorMsg.style.marginTop = '10px';
+    }
+}
+
+// Запасной вариант (если ничего не работает)
+function showFallbackMessage(message) {
+    console.log("ℹ️ Используем запасной вариант - показываем данные в консоли");
+    console.log("📝 Сообщение для отправки:", message);
+    showManualLink(message);
 }
 
 function finishSelection() {
