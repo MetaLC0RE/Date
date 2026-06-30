@@ -167,7 +167,7 @@ function finishSelection() {
 
     const message = `❤️ Ура! Она согласилась на свидание!\n\n📅 Дата: ${formattedDate}\n⏰ Время: в ${time}\n📍 Место: ${place}`;
 
-const telegramUrl = 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage';
+ const telegramUrl = 'https://telegram-proxy.org' + TELEGRAM_BOT_TOKEN + '/sendMessage';
 
     fetch(telegramUrl, {
         method: 'POST',
