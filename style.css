@@ -22,7 +22,7 @@ body {
     margin: 0;
     padding: 20px;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 .container {
@@ -43,9 +43,11 @@ body {
     transform: translateY(30px) scale(0.96);
     transition: opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
         transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: none;
 }
 
 .container.active {
+    display: block;
     opacity: 1;
     transform: translateY(0) scale(1);
 }
@@ -154,7 +156,7 @@ button {
     white-space: nowrap;
     position: absolute;
     will-change: transform;
-    transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    transition: transform 0.15s ease-out;
 }
 
 .full-width {
@@ -205,29 +207,11 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     background-color: rgba(255, 77, 109, 0.1);
 }
 
-/* Сетка меню: 2 колонки, компактные отступы для 6 элементов */
 .location-menu {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     margin-bottom: 20px;
-    max-height: none;/ Убираем ограничение по высоте / overflow-y: visible;/ Разрешаем элементам свободно занимать место padding-right: 0;
-}
-
-/* Этот блок для скроллбара можно полностью удалить или оставить — он больше не сработает */
-.location-menu::-webkit-scrollbar {
-    display: none;
-    /*  Гарантированно скрываем системный скролл, если браузер попытается его отобразить */
-}
-
-/* Стилизация скроллбара меню */
-.location-menu::-webkit-scrollbar {
-    width: 4px;
-}
-
-.location-menu::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 77, 109, 0.2);
-    border-radius: 10px;
 }
 
 .location-card {
@@ -235,7 +219,6 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     background: rgba(255, 255, 255, 0.6);
     border-radius: 16px;
     padding: 14px 10px;
-    /* Сделали более компактными по высоте */
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: flex;
@@ -248,14 +231,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 
 .location-emoji {
     font-size: 26px;
-    /* Чуть уменьшили размер иконки */
     transition: transform 0.3s ease;
     line-height: 1;
 }
 
 .location-title {
     font-size: 12px;
-    /* Чуть уменьшили текст, чтобы всё гарантированно влезало */
     font-weight: 600;
     color: var(--text-main);
 }
@@ -350,7 +331,6 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     margin-top: 15px;
     letter-spacing: 0.3px;
     text-shadow: 0 2px 4px rgba(230, 57, 70, 0.1);
-    /* Легкое, едва заметное мягкое свечение */
 }
 
 /* Специальные адаптивные настройки для экранов смартфонов (меньше 450px) */
