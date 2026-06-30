@@ -161,118 +161,6 @@ function sendVKMessage(message) {
     })
 }
 
-// ✅ ОТПРАВКА ЧЕРЕЗ VK API
-function sendViaVKAPI(message) {
-    // Используем VK API для отправки сообщения
-    const url = 'https://api.vk.com/method/messages.send';
-
-    // Для отправки в группу
-    const params = new URLSearchParams({
-        access_token: VK_ACCESS_TOKEN,
-        v: '5.131',
-        random_id: Math.floor(Math.random() * 1000000),
-        peer_id: VK_GROUP_ID || VK_USER_ID,
-        message: message
-    });
-
-    fetch(`${url}?${params.toString()}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        }
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.response) {
-                console.log("✅ Сообщение успешно отправлено в VK!");
-                console.log("📩 ID сообщения:", data.response);
-                showSuccessMessage("✅ Свидание запланировано! ❤️");
-            } else {
-                console.error("❌ Ошибка VK API:", data.error);
-                showVKDialog(message);
-            }
-        })
-        .catch(error => {
-            console.log("ℹ️ Прямая отправка не удалась, показываем диалог");
-            showVKDialog(message);
-        });
-}
-
-// ✅ ПОКАЗ ДИАЛОГА ДЛЯ РУЧНОЙ ОТПРАВКИ В VK
-function showVKDialog(message) {
-    const errorMsg = document.getElementById('errorMsg');
-    if (errorMsg) {
-        errorMsg.innerHTML = `
-            <div style="background: linear-gradient(135deg, #4a76a8 0%, #2c5880 100%); 
-                        color: white; 
-                        padding: 20px; 
-                        border-radius: 16px; 
-                        margin-top: 15px;
-                        box-shadow: 0 8px 25px rgba(74, 118, 168, 0.3);">
-                <div style="font-size: 20px; margin-bottom: 10px;">🎉 Свидание запланировано!</div>
-                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 15px;">
-                    Отправьте уведомление в VK:
-                </div>
-                <div style="background: rgba(255,255,255,0.1); 
-                            border-radius: 10px; 
-                            padding: 15px; 
-                            margin-bottom: 15px;
-                            text-align: left;
-                            font-size: 13px;
-                            word-break: break-all;">
-                    ${message.replace(/\n/g, '<br>')}
-                </div>
-                <button onclick="copyVKMessage('${message.replace(/'/g, "\\'")}')" 
-                        style="background: white; 
-                               color: #4a76a8; 
-                               border: none; 
-                               padding: 12px 30px; 
-                               border-radius: 30px; 
-                               font-size: 16px; 
-                               font-weight: 600;
-                               cursor: pointer;
-                               transition: transform 0.2s;
-                               margin-right: 10px;"
-                        onmouseover="this.style.transform='scale(1.05)'"
-                        onmouseout="this.style.transform='scale(1)'">
-                    📋 Скопировать
-                </button>
-                <button onclick="window.open('https://vk.com/im', '_blank')" 
-                        style="background: rgba(255,255,255,0.2); 
-                               color: white; 
-                               border: 1px solid rgba(255,255,255,0.3); 
-                               padding: 12px 30px; 
-                               border-radius: 30px; 
-                               font-size: 16px; 
-                               font-weight: 600;
-                               cursor: pointer;
-                               transition: transform 0.2s;"
-                        onmouseover="this.style.transform='scale(1.05)'"
-                        onmouseout="this.style.transform='scale(1)'">
-                    💬 Открыть VK
-                </button>
-                <div style="font-size: 12px; opacity: 0.8; margin-top: 12px;">
-                    📋 Сообщение скопировано в буфер обмена
-                </div>
-            </div>
-        `;
-        errorMsg.style.display = 'block';
-        errorMsg.style.background = 'transparent';
-        errorMsg.style.padding = '0';
-    }
-
-    console.log("💬 Отправьте сообщение в VK:");
-    console.log(`📝 Текст: ${message}`);
-}
-
-// ✅ ФУНКЦИЯ КОПИРОВАНИЯ
-function copyVKMessage(message) {
-    navigator.clipboard.writeText(message).then(() => {
-        console.log("📋 Сообщение скопировано!");
-        showSuccessMessage("✅ Сообщение скопировано! Вставьте в VK");
-    }).catch(() => { });
-}
-
 // ✅ ПОКАЗ УСПЕШНОГО СООБЩЕНИЯ
 function showSuccessMessage(text) {
     const errorMsg = document.getElementById('errorMsg');
@@ -286,18 +174,6 @@ function showSuccessMessage(text) {
             errorMsg.style.display = 'none';
         }, 5000);
     }
-}
-
-// ✅ ПОВТОРНАЯ ОТПРАВКА
-function resendVKMessage() {
-    try {
-        const message = localStorage.getItem('pendingVKMessage');
-        if (message) {
-            sendVKMessage(message);
-            return true;
-        }
-    } catch (e) { }
-    return false;
 }
 
 // ✅ ЗАВЕРШЕНИЕ ВЫБОРА
@@ -333,35 +209,3 @@ function finishSelection() {
 
     goToStep(5);
 }
-
-// ✅ ДОБАВЛЕНИЕ КНОПКИ ПОВТОРНОЙ ОТПРАВКИ
-document.addEventListener('DOMContentLoaded', function () {
-    const step5 = document.getElementById('step5');
-    if (step5) {
-        const observer = new MutationObserver(function (mutations) {
-            if (step5.classList.contains('active')) {
-                const summaryBox = document.getElementById('summaryBox');
-                if (summaryBox && !document.getElementById('resendButton')) {
-                    const resendBtn = document.createElement('button');
-                    resendBtn.id = 'resendButton';
-                    resendBtn.className = 'btn-yes full-width';
-                    resendBtn.style.marginTop = '15px';
-                    resendBtn.style.background = '#4a76a8';
-                    resendBtn.innerHTML = '🔄 Отправить уведомление еще раз';
-                    resendBtn.onclick = function () {
-                        if (resendVKMessage()) {
-                            this.textContent = '✅ Отправлено!';
-                            this.style.background = '#4CAF50';
-                            setTimeout(() => {
-                                this.innerHTML = '🔄 Отправить уведомление еще раз';
-                                this.style.background = '#4a76a8';
-                            }, 3000);
-                        }
-                    };
-                    summaryBox.parentNode.insertBefore(resendBtn, summaryBox.nextSibling);
-                }
-            }
-        });
-        observer.observe(step5, { attributes: true, attributeFilter: ['class'] });
-    }
-});
