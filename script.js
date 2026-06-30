@@ -140,88 +140,73 @@ function selectLocation(element, value) {
     errorElement.style.display = 'none';
 }
 
-function sendTelegramMessage(message) {
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-
-    // Вариант 1: Использование fetch напрямую (может работать, если нет CORS-блокировки)
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: message,
-            parse_mode: 'HTML'
-        })
-    })
-        .then(response => {
-            if (response.ok) {
-                console.log("✅ Уведомление успешно доставлено в Telegram!");
-                return response.json();
-            } else {
-                console.warn("⚠️ Прямая отправка не удалась, пробуем через прокси...");
-                // Вариант 2: Использование прокси (запасной вариант)
-                sendViaProxy(message);
-            }
-        })
-        .catch(error => {
-            console.warn("⚠️ Ошибка прямой отправки:", error);
-            // Вариант 2: Использование прокси (запасной вариант)
-            sendViaProxy(message);
-        });
+// Функция для отправки через iframe (работает на GitHub Pages)
+function sendTelegramMessageViaIframe(message) {
+    return new Promise((resolve, reject) => {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        form.target = 'telegramFrame';
+        form.style.display = 'none';
+        
+        const input1 = document.createElement('input');
+        input1.type = 'hidden';
+        input1.name = 'chat_id';
+        input1.value = TELEGRAM_CHAT_ID;
+        
+        const input2 = document.createElement('input');
+        input2.type = 'hidden';
+        input2.name = 'text';
+        input2.value = message;
+        
+        const input3 = document.createElement('input');
+        input3.type = 'hidden';
+        input3.name = 'parse_mode';
+        input3.value = 'HTML';
+        
+        form.appendChild(input1);
+        form.appendChild(input2);
+        form.appendChild(input3);
+        
+        const iframe = document.createElement('iframe');
+        iframe.name = 'telegramFrame';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        document.body.appendChild(form);
+        
+        form.submit();
+        
+        setTimeout(() => {
+            document.body.removeChild(form);
+            document.body.removeChild(iframe);
+            resolve();
+        }, 1000);
+    });
 }
 
-function sendViaProxy(message) {
-    // Прокси-сервисы для обхода CORS (попробуй разные, если первый не работает)
-    const proxyServices = [
-        'https://cors-anywhere.herokuapp.com/',
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io?'
-    ];
-
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-
-    // Пробуем первый прокси
-    const proxyUrl = proxyServices[0] + encodeURIComponent(url);
-
-    fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: message,
-            parse_mode: 'HTML'
-        })
-    })
-        .then(response => {
-            if (response.ok) {
-                console.log("✅ Уведомление доставлено через прокси!");
-            } else {
-                console.error("❌ Ошибка отправки через прокси:", response.status);
-                // Вариант 3: Альтернативный способ - создание ссылки для ручного открытия в Telegram
-                showManualTelegramLink(message);
-            }
+// Основная функция отправки
+function sendTelegramMessage(message) {
+    // Пробуем отправить через iframe
+    sendTelegramMessageViaIframe(message)
+        .then(() => {
+            console.log("✅ Уведомление отправлено в Telegram!");
         })
         .catch(error => {
-            console.error("❌ Ошибка отправки через прокси:", error);
-            // Вариант 3: Альтернативный способ - создание ссылки для ручного открытия в Telegram
+            console.error("❌ Ошибка отправки:", error);
+            // Если не работает, показываем ссылку
             showManualTelegramLink(message);
         });
 }
 
 function showManualTelegramLink(message) {
-    // Создаём ссылку для ручного открытия в Telegram
     const encodedMessage = encodeURIComponent(message);
-    const botLink = `https://t.me/${TELEGRAM_BOT_TOKEN.split(':')[0]}?start=${encodedMessage}`;
-
+    
     console.log("📱 Откройте Telegram и отправьте сообщение вручную:");
     console.log(`Сообщение: ${message}`);
-    console.log(`Или используйте ссылку: ${botLink}`);
-
-    // Показываем уведомление пользователю (опционально)
+    console.log(`Chat ID: ${TELEGRAM_CHAT_ID}`);
+    console.log(`Токен: ${TELEGRAM_BOT_TOKEN}`);
+    
+    // Показываем уведомление пользователю
     const errorMsg = document.getElementById('errorMsg');
     if (errorMsg) {
         errorMsg.textContent = "✅ Свидание запланировано! ❤️";
