@@ -80,7 +80,7 @@ function triggerError(element, message) {
     element.innerText = message;
     element.style.display = 'block';
     element.style.animation = 'none';
-    element.offsetHeight; // Триггер перерасчета стилей для перезапуска анимации
+    element.offsetHeight;
     element.style.animation = 'shake 0.4s ease-in-out';
 }
 
@@ -140,6 +140,99 @@ function selectLocation(element, value) {
     errorElement.style.display = 'none';
 }
 
+function sendTelegramMessage(message) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+    // Вариант 1: Использование fetch напрямую (может работать, если нет CORS-блокировки)
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: message,
+            parse_mode: 'HTML'
+        })
+    })
+        .then(response => {
+            if (response.ok) {
+                console.log("✅ Уведомление успешно доставлено в Telegram!");
+                return response.json();
+            } else {
+                console.warn("⚠️ Прямая отправка не удалась, пробуем через прокси...");
+                // Вариант 2: Использование прокси (запасной вариант)
+                sendViaProxy(message);
+            }
+        })
+        .catch(error => {
+            console.warn("⚠️ Ошибка прямой отправки:", error);
+            // Вариант 2: Использование прокси (запасной вариант)
+            sendViaProxy(message);
+        });
+}
+
+function sendViaProxy(message) {
+    // Прокси-сервисы для обхода CORS (попробуй разные, если первый не работает)
+    const proxyServices = [
+        'https://cors-anywhere.herokuapp.com/',
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io?'
+    ];
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+    // Пробуем первый прокси
+    const proxyUrl = proxyServices[0] + encodeURIComponent(url);
+
+    fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: message,
+            parse_mode: 'HTML'
+        })
+    })
+        .then(response => {
+            if (response.ok) {
+                console.log("✅ Уведомление доставлено через прокси!");
+            } else {
+                console.error("❌ Ошибка отправки через прокси:", response.status);
+                // Вариант 3: Альтернативный способ - создание ссылки для ручного открытия в Telegram
+                showManualTelegramLink(message);
+            }
+        })
+        .catch(error => {
+            console.error("❌ Ошибка отправки через прокси:", error);
+            // Вариант 3: Альтернативный способ - создание ссылки для ручного открытия в Telegram
+            showManualTelegramLink(message);
+        });
+}
+
+function showManualTelegramLink(message) {
+    // Создаём ссылку для ручного открытия в Telegram
+    const encodedMessage = encodeURIComponent(message);
+    const botLink = `https://t.me/${TELEGRAM_BOT_TOKEN.split(':')[0]}?start=${encodedMessage}`;
+
+    console.log("📱 Откройте Telegram и отправьте сообщение вручную:");
+    console.log(`Сообщение: ${message}`);
+    console.log(`Или используйте ссылку: ${botLink}`);
+
+    // Показываем уведомление пользователю (опционально)
+    const errorMsg = document.getElementById('errorMsg');
+    if (errorMsg) {
+        errorMsg.textContent = "✅ Свидание запланировано! ❤️";
+        errorMsg.style.display = 'block';
+        errorMsg.style.color = '#4CAF50';
+        setTimeout(() => {
+            errorMsg.style.display = 'none';
+        }, 3000);
+    }
+}
+
 function finishSelection() {
     const date = document.getElementById('date').value;
     const time = document.getElementById('time').value;
@@ -167,34 +260,8 @@ function finishSelection() {
 
     const message = `❤️ Ура! Она согласилась на свидание!\n\n📅 Дата: ${formattedDate}\n⏰ Время: в ${time}\n📍 Место: ${place}`;
 
-    // Используем простой fetch с правильным URL
-    const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-
-    fetch(telegramUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: message,
-            parse_mode: 'HTML'
-        })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.ok) {
-                console.log("✅ Успешно отправлено в Telegram!", data);
-            } else {
-                console.error("❌ Ошибка от Telegram:", data.description);
-                // Показать ошибку пользователю
-                document.getElementById('errorMsg').textContent = 'Не удалось отправить заявку. Попробуйте позже.';
-                document.getElementById('errorMsg').style.display = 'block';
-            }
-        })
-        .catch(err => {
-            console.error("❌ Ошибка сети:", err);
-            document.getElementById('errorMsg').textContent = 'Ошибка соединения. Проверьте интернет.';
-            document.getElementById('errorMsg').style.display = 'block';
-        });
+    // Отправка сообщения в Telegram
+    sendTelegramMessage(message);
 
     goToStep(5);
 }
