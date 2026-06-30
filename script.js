@@ -167,45 +167,34 @@ function finishSelection() {
 
     const message = `❤️ Ура! Она согласилась на свидание!\n\n📅 Дата: ${formattedDate}\n⏰ Время: в ${time}\n📍 Место: ${place}`;
 
-    // Прямой URL API Telegram без прокси
-    const telegramUrl = 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage';
+    // Используем простой fetch с правильным URL
+    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-    // Железобетонный обход CORS: отправка через скрытую HTML-форму в фоне
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = telegramUrl;
-    form.target = 'hidden_iframe'; // Чтобы страница не перезагружалась
-
-    // Создаем скрытый фрейм, если его еще нет
-    let iframe = document.getElementById('hidden_iframe');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.name = 'hidden_iframe';
-        iframe.id = 'hidden_iframe';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-    }
-
-    // Добавляем ID чата
-    const chatInput = document.createElement('input');
-    chatInput.type = 'hidden';
-    chatInput.name = 'chat_id';
-    chatInput.value = TELEGRAM_CHAT_ID;
-    form.appendChild(chatInput);
-
-    // Добавляем текст сообщения
-    const textInput = document.createElement('input');
-    textInput.type = 'hidden';
-    textInput.name = 'text';
-    textInput.value = message;
-    form.appendChild(textInput);
-
-    // Отправляем форму в фоне
-    document.body.appendChild(form);
-    form.submit();
-
-    // Удаляем форму после отправки
-    setTimeout(() => { document.body.removeChild(form); }, 100);
+    fetch(telegramUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: chatId,
+            text: message,
+            parse_mode: 'HTML'
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                console.log("✅ Успешно отправлено в Telegram!", data);
+            } else {
+                console.error("❌ Ошибка от Telegram:", data.description);
+                // Показать ошибку пользователю
+                document.getElementById('errorMsg').textContent = 'Не удалось отправить заявку. Попробуйте позже.';
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+        })
+        .catch(err => {
+            console.error("❌ Ошибка сети:", err);
+            document.getElementById('errorMsg').textContent = 'Ошибка соединения. Проверьте интернет.';
+            document.getElementById('errorMsg').style.display = 'block';
+        });
 
     goToStep(5);
 }
