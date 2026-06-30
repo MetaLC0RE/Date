@@ -168,13 +168,13 @@ function finishSelection() {
     const message = `❤️ Ура! Она согласилась на свидание!\n\n📅 Дата: ${formattedDate}\n⏰ Время: в ${time}\n📍 Место: ${place}`;
 
     // Используем простой fetch с правильным URL
-    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
     fetch(telegramUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            chat_id: chatId,
+            chat_id: TELEGRAM_CHAT_ID,
             text: message,
             parse_mode: 'HTML'
         })
