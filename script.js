@@ -1,6 +1,7 @@
-// НАСТРОЙКА ТЕЛЕГРАМА: Вставь свои данные между кавычек
-const TELEGRAM_BOT_TOKEN = "8866971736:AAE_RK-nArz8qKzFOEbvb8TcMiVmmrQrPLs";
-const TELEGRAM_CHAT_ID = "436845760";
+// НАСТРОЙКА VK: Вставь свои данные
+const VK_ACCESS_TOKEN = "vk1.a.0Hu_H4o5D1z7R3itbO_mDkdsuIgjIB72QqA94aqoZfr1DT0qEU32gV5SfuGZZ3YwWNJgvm4pxQuPWKBlNoFvzWX_rrF62y1QC9Q86KnSOhpp0ITssXIJgsgNZDcsSBrhxMwPYDjWiGih8jnDuV7Q06aqqbNNvuPH-XkL_VFrFN2xcwS1eg4hyJha_brpB2aVsPK6KeWHgZgjkdVEOtb5dA"; // Токен сообщества или пользователя
+const VK_GROUP_ID = "239961092"; // ID группы (без минуса)
+const VK_USER_ID = "425176416"; // ID пользователя для личных сообщений
 
 document.addEventListener("DOMContentLoaded", () => {
     const firstStep = document.getElementById('step1');
@@ -140,128 +141,166 @@ function selectLocation(element, value) {
     errorElement.style.display = 'none';
 }
 
-// Функция для отправки через Webhook (рекомендуемый способ)
-function sendTelegramMessage(message) {
-    // Проверяем, что токен и чат ID заданы
-    if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN === "YOUR_BOT_TOKEN") {
-        console.error("❌ Токен бота не задан!");
-        showFallbackMessage(message);
-        return;
-    }
-    
-    if (!TELEGRAM_CHAT_ID || TELEGRAM_CHAT_ID === "YOUR_CHAT_ID") {
-        console.error("❌ Chat ID не задан!");
-        showFallbackMessage(message);
-        return;
-    }
+// ✅ ФУНКЦИЯ ОТПРАВКИ В VK
+function sendVKMessage(message) {
+    const webhookUrl = "https://hook.us2.make.com/9lecwvuhc6wxem8zw42twjb9it84ym3f";
 
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    
-    // Пробуем отправить через fetch с режимом no-cors
-    fetch(url, {
+    const randomId = Math.floor(Math.random() * 1000000);
+    const peerId = 425176416; // Ваш ID (вставьте свой)
+
+    fetch(webhookUrl, {
         method: 'POST',
-        mode: 'no-cors', // Важно для обхода CORS
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
             text: message,
-            parse_mode: 'HTML'
+            peer_id: peerId,      // ← жестко задано
+            random_id: randomId
         })
     })
-    .then(response => {
-        // При режиме no-cors ответ всегда будет opaque
-        // Поэтому мы не можем проверить статус
-        console.log("📤 Запрос отправлен в Telegram API");
-        console.log("ℹ️ В режиме no-cors мы не можем получить ответ");
-        console.log("🔍 Проверьте Telegram бота, должно прийти сообщение");
-        
-        // Отображаем информацию пользователю
-        showSuccessMessage();
-    })
-    .catch(error => {
-        console.error("❌ Ошибка отправки:", error);
-        // Если fetch не работает, пробуем альтернативный способ
-        sendTelegramMessageViaImage(message);
+}
+
+// ✅ ОТПРАВКА ЧЕРЕЗ VK API
+function sendViaVKAPI(message) {
+    // Используем VK API для отправки сообщения
+    const url = 'https://api.vk.com/method/messages.send';
+
+    // Для отправки в группу
+    const params = new URLSearchParams({
+        access_token: VK_ACCESS_TOKEN,
+        v: '5.131',
+        random_id: Math.floor(Math.random() * 1000000),
+        peer_id: VK_GROUP_ID || VK_USER_ID,
+        message: message
     });
+
+    fetch(`${url}?${params.toString()}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.response) {
+                console.log("✅ Сообщение успешно отправлено в VK!");
+                console.log("📩 ID сообщения:", data.response);
+                showSuccessMessage("✅ Свидание запланировано! ❤️");
+            } else {
+                console.error("❌ Ошибка VK API:", data.error);
+                showVKDialog(message);
+            }
+        })
+        .catch(error => {
+            console.log("ℹ️ Прямая отправка не удалась, показываем диалог");
+            showVKDialog(message);
+        });
 }
 
-// Альтернативный способ: через отправку изображения (работает через img тег)
-function sendTelegramMessageViaImage(message) {
-    console.log("📤 Пробуем отправить через Image...");
-    
-    // Кодируем сообщение в URL
-    const encodedMessage = encodeURIComponent(message);
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodedMessage}&parse_mode=HTML`;
-    
-    // Создаем img с src на API Telegram
-    const img = new Image();
-    img.onload = function() {
-        console.log("✅ Уведомление отправлено через Image!");
-        showSuccessMessage();
-    };
-    img.onerror = function() {
-        console.log("⚠️ Image метод не сработал, пробуем через ссылку");
-        // Показываем ссылку для ручной отправки
-        showManualLink(message);
-    };
-    img.src = url;
-    img.style.display = 'none';
-    document.body.appendChild(img);
-    setTimeout(() => {
-        document.body.removeChild(img);
-    }, 2000);
-}
-
-// Показать успешное сообщение
-function showSuccessMessage() {
-    const errorMsg = document.getElementById('errorMsg');
-    if (errorMsg) {
-        errorMsg.textContent = "✅ Свидание запланировано! ❤️";
-        errorMsg.style.display = 'block';
-        errorMsg.style.color = '#4CAF50';
-        setTimeout(() => {
-            errorMsg.style.display = 'none';
-        }, 3000);
-    }
-}
-
-// Показать ссылку для ручной отправки
-function showManualLink(message) {
-    const encodedMessage = encodeURIComponent(message);
-    const botUsername = TELEGRAM_BOT_TOKEN.split(':')[0];
-    
-    console.log("📱 Отправьте сообщение вручную:");
-    console.log(`Сообщение: ${message}`);
-    console.log(`Chat ID: ${TELEGRAM_CHAT_ID}`);
-    console.log(`Токен: ${TELEGRAM_BOT_TOKEN}`);
-    console.log(`Ссылка на бота: https://t.me/${botUsername}`);
-    
-    // Показываем диалог с инструкцией
+// ✅ ПОКАЗ ДИАЛОГА ДЛЯ РУЧНОЙ ОТПРАВКИ В VK
+function showVKDialog(message) {
     const errorMsg = document.getElementById('errorMsg');
     if (errorMsg) {
         errorMsg.innerHTML = `
-            📱 <b>Не удалось отправить автоматически</b><br>
-            Напишите боту вручную:<br>
-            <small>@${botUsername}</small>
+            <div style="background: linear-gradient(135deg, #4a76a8 0%, #2c5880 100%); 
+                        color: white; 
+                        padding: 20px; 
+                        border-radius: 16px; 
+                        margin-top: 15px;
+                        box-shadow: 0 8px 25px rgba(74, 118, 168, 0.3);">
+                <div style="font-size: 20px; margin-bottom: 10px;">🎉 Свидание запланировано!</div>
+                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 15px;">
+                    Отправьте уведомление в VK:
+                </div>
+                <div style="background: rgba(255,255,255,0.1); 
+                            border-radius: 10px; 
+                            padding: 15px; 
+                            margin-bottom: 15px;
+                            text-align: left;
+                            font-size: 13px;
+                            word-break: break-all;">
+                    ${message.replace(/\n/g, '<br>')}
+                </div>
+                <button onclick="copyVKMessage('${message.replace(/'/g, "\\'")}')" 
+                        style="background: white; 
+                               color: #4a76a8; 
+                               border: none; 
+                               padding: 12px 30px; 
+                               border-radius: 30px; 
+                               font-size: 16px; 
+                               font-weight: 600;
+                               cursor: pointer;
+                               transition: transform 0.2s;
+                               margin-right: 10px;"
+                        onmouseover="this.style.transform='scale(1.05)'"
+                        onmouseout="this.style.transform='scale(1)'">
+                    📋 Скопировать
+                </button>
+                <button onclick="window.open('https://vk.com/im', '_blank')" 
+                        style="background: rgba(255,255,255,0.2); 
+                               color: white; 
+                               border: 1px solid rgba(255,255,255,0.3); 
+                               padding: 12px 30px; 
+                               border-radius: 30px; 
+                               font-size: 16px; 
+                               font-weight: 600;
+                               cursor: pointer;
+                               transition: transform 0.2s;"
+                        onmouseover="this.style.transform='scale(1.05)'"
+                        onmouseout="this.style.transform='scale(1)'">
+                    💬 Открыть VK
+                </button>
+                <div style="font-size: 12px; opacity: 0.8; margin-top: 12px;">
+                    📋 Сообщение скопировано в буфер обмена
+                </div>
+            </div>
         `;
         errorMsg.style.display = 'block';
-        errorMsg.style.color = '#FF6B35';
-        errorMsg.style.padding = '15px';
-        errorMsg.style.background = '#FFF3E0';
-        errorMsg.style.borderRadius = '12px';
-        errorMsg.style.marginTop = '10px';
+        errorMsg.style.background = 'transparent';
+        errorMsg.style.padding = '0';
+    }
+
+    console.log("💬 Отправьте сообщение в VK:");
+    console.log(`📝 Текст: ${message}`);
+}
+
+// ✅ ФУНКЦИЯ КОПИРОВАНИЯ
+function copyVKMessage(message) {
+    navigator.clipboard.writeText(message).then(() => {
+        console.log("📋 Сообщение скопировано!");
+        showSuccessMessage("✅ Сообщение скопировано! Вставьте в VK");
+    }).catch(() => { });
+}
+
+// ✅ ПОКАЗ УСПЕШНОГО СООБЩЕНИЯ
+function showSuccessMessage(text) {
+    const errorMsg = document.getElementById('errorMsg');
+    if (errorMsg) {
+        errorMsg.textContent = text;
+        errorMsg.style.display = 'block';
+        errorMsg.style.color = '#4CAF50';
+        errorMsg.style.background = 'transparent';
+        errorMsg.style.padding = '0';
+        setTimeout(() => {
+            errorMsg.style.display = 'none';
+        }, 5000);
     }
 }
 
-// Запасной вариант (если ничего не работает)
-function showFallbackMessage(message) {
-    console.log("ℹ️ Используем запасной вариант - показываем данные в консоли");
-    console.log("📝 Сообщение для отправки:", message);
-    showManualLink(message);
+// ✅ ПОВТОРНАЯ ОТПРАВКА
+function resendVKMessage() {
+    try {
+        const message = localStorage.getItem('pendingVKMessage');
+        if (message) {
+            sendVKMessage(message);
+            return true;
+        }
+    } catch (e) { }
+    return false;
 }
 
+// ✅ ЗАВЕРШЕНИЕ ВЫБОРА
 function finishSelection() {
     const date = document.getElementById('date').value;
     const time = document.getElementById('time').value;
@@ -289,8 +328,40 @@ function finishSelection() {
 
     const message = `❤️ Ура! Она согласилась на свидание!\n\n📅 Дата: ${formattedDate}\n⏰ Время: в ${time}\n📍 Место: ${place}`;
 
-    // Отправка сообщения в Telegram
-    sendTelegramMessage(message);
+    // Отправка в VK
+    sendVKMessage(message);
 
     goToStep(5);
 }
+
+// ✅ ДОБАВЛЕНИЕ КНОПКИ ПОВТОРНОЙ ОТПРАВКИ
+document.addEventListener('DOMContentLoaded', function () {
+    const step5 = document.getElementById('step5');
+    if (step5) {
+        const observer = new MutationObserver(function (mutations) {
+            if (step5.classList.contains('active')) {
+                const summaryBox = document.getElementById('summaryBox');
+                if (summaryBox && !document.getElementById('resendButton')) {
+                    const resendBtn = document.createElement('button');
+                    resendBtn.id = 'resendButton';
+                    resendBtn.className = 'btn-yes full-width';
+                    resendBtn.style.marginTop = '15px';
+                    resendBtn.style.background = '#4a76a8';
+                    resendBtn.innerHTML = '🔄 Отправить уведомление еще раз';
+                    resendBtn.onclick = function () {
+                        if (resendVKMessage()) {
+                            this.textContent = '✅ Отправлено!';
+                            this.style.background = '#4CAF50';
+                            setTimeout(() => {
+                                this.innerHTML = '🔄 Отправить уведомление еще раз';
+                                this.style.background = '#4a76a8';
+                            }, 3000);
+                        }
+                    };
+                    summaryBox.parentNode.insertBefore(resendBtn, summaryBox.nextSibling);
+                }
+            }
+        });
+        observer.observe(step5, { attributes: true, attributeFilter: ['class'] });
+    }
+});
