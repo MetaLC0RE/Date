@@ -167,21 +167,24 @@ function finishSelection() {
 
     const message = `❤️ Ура! Она согласилась на свидание!\n\n📅 Дата: ${formattedDate}\n⏰ Время: в ${time}\n📍 Место: ${place}`;
 
-    fetch(`https://telegram.org{TELEGRAM_BOT_TOKEN}/sendMessage`, {
+const telegramUrl = 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage';
+
+    fetch(telegramUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             chat_id: TELEGRAM_CHAT_ID,
             text: message
         })
-    }).then(response => {
+    })
+    .then(response => {
         if (!response.ok) {
-            console.error("Сервер ТГ вернул ошибку:", response.status);
+            console.error("Сервер ТГ вернул ошибку, код:", response.status);
         } else {
-            console.log("Сообщение успешно отправлено в Telegram! 🎉");
+            console.log("Уведомление успешно доставлено в Telegram! 🚀");
         }
-    }).catch(err => console.error("Ошибка отправки в ТГ:", err));
-    }).catch(err => console.error("Ошибка отправки в ТГ:", err));
+    })
+    .catch(err => console.error("Ошибка отправки в ТГ:", err));
 
     goToStep(5);
 }
