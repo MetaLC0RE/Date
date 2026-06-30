@@ -174,6 +174,13 @@ function finishSelection() {
             chat_id: TELEGRAM_CHAT_ID,
             text: message
         })
+    }).then(response => {
+        if (!response.ok) {
+            console.error("Сервер ТГ вернул ошибку:", response.status);
+        } else {
+            console.log("Сообщение успешно отправлено в Telegram! 🎉");
+        }
+    }).catch(err => console.error("Ошибка отправки в ТГ:", err));
     }).catch(err => console.error("Ошибка отправки в ТГ:", err));
 
     goToStep(5);
