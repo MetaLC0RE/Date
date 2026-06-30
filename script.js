@@ -167,24 +167,45 @@ function finishSelection() {
 
     const message = `❤️ Ура! Она согласилась на свидание!\n\n📅 Дата: ${formattedDate}\n⏰ Время: в ${time}\n📍 Место: ${place}`;
 
- const telegramUrl = 'https://telegram-proxy.org' + TELEGRAM_BOT_TOKEN + '/sendMessage';
+    // Прямой URL API Telegram без прокси
+    const telegramUrl = 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage';
 
-    fetch(telegramUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: message
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            console.error("Сервер ТГ вернул ошибку, код:", response.status);
-        } else {
-            console.log("Уведомление успешно доставлено в Telegram! 🚀");
-        }
-    })
-    .catch(err => console.error("Ошибка отправки в ТГ:", err));
+    // Железобетонный обход CORS: отправка через скрытую HTML-форму в фоне
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = telegramUrl;
+    form.target = 'hidden_iframe'; // Чтобы страница не перезагружалась
+
+    // Создаем скрытый фрейм, если его еще нет
+    let iframe = document.getElementById('hidden_iframe');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.name = 'hidden_iframe';
+        iframe.id = 'hidden_iframe';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+    }
+
+    // Добавляем ID чата
+    const chatInput = document.createElement('input');
+    chatInput.type = 'hidden';
+    chatInput.name = 'chat_id';
+    chatInput.value = TELEGRAM_CHAT_ID;
+    form.appendChild(chatInput);
+
+    // Добавляем текст сообщения
+    const textInput = document.createElement('input');
+    textInput.type = 'hidden';
+    textInput.name = 'text';
+    textInput.value = message;
+    form.appendChild(textInput);
+
+    // Отправляем форму в фоне
+    document.body.appendChild(form);
+    form.submit();
+
+    // Удаляем форму после отправки
+    setTimeout(() => { document.body.removeChild(form); }, 100);
 
     goToStep(5);
 }
